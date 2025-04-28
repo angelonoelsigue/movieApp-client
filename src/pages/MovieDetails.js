@@ -53,33 +53,45 @@ export default function MovieDetails() {
   };
 
   const addComment = async (e) => {
-    e.preventDefault();
-    setCommentError(null);
+      e.preventDefault();
+      setCommentError(null);
 
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      setCommentError("You must be logged in to add comments.");
-      return;
-    }
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        setCommentError("You must be logged in to add comments.");
+        return;
+      }
 
-    try {
-      const res = await fetch(`https://movieapp-api-lms1.onrender.com/movies/addComment/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ userId, comment: newComment }),
-      });
+      try {
+        const res = await fetch(`https://movieapp-api-lms1.onrender.com/movies/addComment/${id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ userId, comment: newComment }),
+        });
 
-      if (!res.ok) throw new Error(`Failed to add comment. Status: ${res.status}`);
+        const rawResponse = await res.text(); // ✅ Log raw response before parsing
+        console.log("Raw API Response:", rawResponse);
 
-      const data = await res.json();
-      setComments([...data.updatedMovie.comments]);
-      setNewComment("");
-    } catch (error) {
-      setCommentError(error.message);
-    }
+        if (!res.ok) {
+          throw new Error(`Failed to add comment. Status: ${res.status} | Response: ${rawResponse}`);
+        }
+
+        try {
+          const jsonResponse = JSON.parse(rawResponse);
+          console.log("Parsed JSON Response:", jsonResponse);
+          setComments([...jsonResponse.updatedMovie.comments]);
+          setNewComment("");
+        } catch (parseError) {
+          console.error("JSON Parsing Error:", parseError);
+          throw new Error("Server returned an invalid JSON response.");
+        }
+      } catch (error) {
+        console.error("Error adding comment:", error);
+        setCommentError(error.message);
+      }
   };
 
   if (loading) {
